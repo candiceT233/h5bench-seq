@@ -53,19 +53,8 @@ message(STATUS "h5bench MACSIO: ${H5BENCH_MACSIO}")
 # HDF5 Dependency #############################################################
 #
 
-if(DEFINED ENV{HDF5_DIR})
-    message(STATUS "Using HDF5_DIR: $ENV{HDF5_DIR}")
-
-    set(HDF5_HOME $ENV{HDF5_DIR})
-    set(CMAKE_PREFIX_PATH $ENV{HDF5_DIR})
-endif()
-
-if(DEFINED ENV{HDF5_HOME})
-    message(STATUS "Using HDF5_HOME: $ENV{HDF5_HOME}")
-
-    set(HDF5_HOME $ENV{HDF5_HOME})
-    set(CMAKE_PREFIX_PATH $ENV{HDF5_HOME})
-endif()
+set(HDF5_HOME $ENV{HDF5_HOME})
+set(CMAKE_PREFIX_PATH ${HDF5_HOME})
 
 find_package(HDF5 REQUIRED)
 
@@ -120,14 +109,6 @@ if(WITH_ASYNC_VOL)
     target_link_libraries(h5bench_util asynchdf5 h5async)
 endif()
 
-# h5bench WRITE varying particle based on normal distribution ######################
-#
-
-set(h5bench_write_normal_dist_src h5bench_patterns/h5bench_write_normal_dist.c)
-
-add_executable(h5bench_write_normal_dist ${h5bench_write_normal_dist_src})
-target_link_libraries(h5bench_write_normal_dist h5bench_util hdf5 z m ${CMAKE_DL_LIBS} MPI::MPI_C) 
-
 # h5bench WRITE ###############################################################
 #
 
@@ -136,29 +117,29 @@ set(h5bench_write_src h5bench_patterns/h5bench_write.c)
 add_executable(h5bench_write ${h5bench_write_src})
 target_link_libraries(h5bench_write h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C) 
 
-# h5bench WRITE UNLIMITED #####################################################
-#
+# # h5bench WRITE UNLIMITED #####################################################
+# #
 
-set(h5bench_write_unlimited_src h5bench_patterns/h5bench_write_unlimited.c)
+# set(h5bench_write_unlimited_src h5bench_patterns/h5bench_write_unlimited.c)
 
-add_executable(h5bench_write_unlimited ${h5bench_write_unlimited_src})
-target_link_libraries(h5bench_write_unlimited h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C) 
+# add_executable(h5bench_write_unlimited ${h5bench_write_unlimited_src})
+# target_link_libraries(h5bench_write_unlimited h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C) 
 
-# h5bench OVERWRITE ###########################################################
-#
+# # h5bench OVERWRITE ###########################################################
+# #
 
-set(h5bench_overwrite_src h5bench_patterns/h5bench_overwrite.c)
+# set(h5bench_overwrite_src h5bench_patterns/h5bench_overwrite.c)
 
-add_executable(h5bench_overwrite ${h5bench_overwrite_src})
-target_link_libraries(h5bench_overwrite h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C)
+# add_executable(h5bench_overwrite ${h5bench_overwrite_src})
+# target_link_libraries(h5bench_overwrite h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C)
 
-# h5bench APPEND ##############################################################
-#
+# # h5bench APPEND ##############################################################
+# #
 
-set(h5bench_append_src h5bench_patterns/h5bench_append.c)
+# set(h5bench_append_src h5bench_patterns/h5bench_append.c)
 
-add_executable(h5bench_append ${h5bench_append_src})
-target_link_libraries(h5bench_append h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C)
+# add_executable(h5bench_append ${h5bench_append_src})
+# target_link_libraries(h5bench_append h5bench_util hdf5 z ${CMAKE_DL_LIBS} MPI::MPI_C)
 
 # h5bench READ ################################################################
 #
@@ -216,8 +197,6 @@ if(H5BENCH_AMREX)
     target_link_libraries(h5bench_amrex_sync hdf5 z m amrex pthread ${CMAKE_DL_LIBS} MPI::MPI_C)
 
     if(WITH_ASYNC_VOL)
-        message(WARNING "h5bench AMReX with ASYNC-VOL: ensure ASYNC-VOL was compiled with -DENABLE_WRITE_MEMCPY=ON")
-
         set(AMReX_HDF5_ASYNC YES)
 
         add_executable(h5bench_amrex_async ${amrex_src})
@@ -252,7 +231,7 @@ if(H5BENCH_OPENPMD)
     set(openPMD_USE_ADIOS2 OFF)
     set(openPMD_USE_JSON OFF)
     set(openPMD_USE_PYTHON OFF)
-    set(openPMD_INSTALL ON)
+    set(openPMD_INSTALL OFF)
     set(openPMD_BUILD_TESTING OFF)
     set(openPMD_BUILD_EXAMPLES OFF)
     set(openPMD_BUILD_CLI_TOOLS OFF)
@@ -354,10 +333,9 @@ install(
 install(
     TARGETS
     h5bench_write
-    h5bench_write_unlimited
-    h5bench_write_normal_dist
-    h5bench_overwrite
-    h5bench_append
+    # h5bench_write_unlimited
+    # h5bench_overwrite
+    # h5bench_append
     h5bench_read
     DESTINATION bin
 )
@@ -365,7 +343,7 @@ install(
 if(H5BENCH_EXERCISER)
     install(
         TARGETS
-        h5bench_exerciser
+        h5bench_exerciser 
         DESTINATION bin
     )
 endif()
@@ -379,13 +357,6 @@ if(H5BENCH_METADATA)
 endif()
 
 if(H5BENCH_OPENPMD)
-    install(
-        TARGETS
-        openPMD
-        LIBRARY
-        DESTINATION lib
-    )
-
     install(
         TARGETS
         h5bench_openpmd_write
