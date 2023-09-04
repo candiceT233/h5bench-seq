@@ -67,7 +67,7 @@ async_mode    ASYNC_MODE;
 compress_info COMPRESS_INFO; // Using parallel compressing: need to set chunk dimensions for dcpl.
 long long     NUM_PARTICLES = 0, FILE_OFFSET; // 8  meg particles per process
 long long     TOTAL_PARTICLES;
-int           NUM_RANKS, MY_RANK, NUM_TIMESTEPS;
+int           NUM_RANKS = 1, MY_RANK, NUM_TIMESTEPS; // candice added NUM_RANKS = 1
 int           X_DIM = 64;
 int           Y_DIM = 64;
 int           Z_DIM = 64;
@@ -336,21 +336,22 @@ void
 set_dspace_plist(hid_t *plist_id_out, int data_collective)
 {
     *plist_id_out = H5Pcreate(H5P_DATASET_XFER);
-    if (data_collective == 1)
-        H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_COLLECTIVE);
-    else
-        H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_INDEPENDENT);
+    // if (data_collective == 1)
+    //     H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_COLLECTIVE);
+    // else
+    //     H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_INDEPENDENT);
 }
 
 int
 set_select_spaces_default(hid_t *filespace_out, hid_t *memspace_out)
 {
     hsize_t count[1] = {1};
+    *filespace_out   = H5Screate_simple(1, (hsize_t *)&TOTAL_PARTICLES, NULL);    
     *filespace_out   = H5Screate_simple(1, (hsize_t *)&TOTAL_PARTICLES, NULL);
     *memspace_out    = H5Screate_simple(1, (hsize_t *)&NUM_PARTICLES, NULL);
     H5Sselect_hyperslab(*filespace_out, H5S_SELECT_SET, (hsize_t *)&FILE_OFFSET, NULL, count,
                         (hsize_t *)&NUM_PARTICLES);
-    //    printf("TOTAL_PARTICLES = %d, NUM_PARTICLES = %d \n", TOTAL_PARTICLES, NUM_PARTICLES);
+       printf("TOTAL_PARTICLES = %d, NUM_PARTICLES = %d \n", TOTAL_PARTICLES, NUM_PARTICLES);
     return 0;
 }
 
@@ -870,6 +871,7 @@ void
 set_globals(const bench_params *params)
 {
     NUM_PARTICLES = params->num_particles;
+    TOTAL_PARTICLES = NUM_PARTICLES; // candice added
     NUM_TIMESTEPS = params->cnt_time_step;
     // Following variables only used to generate data
     X_DIM                       = X_RAND;
@@ -928,8 +930,8 @@ set_metadata(hid_t fapl, int align, unsigned long threshold, unsigned long align
         if (MY_RANK == 0)
             printf("Collective Metadata operations: ON\n");
 #if H5_VERSION_GE(1, 10, 0)
-        H5Pset_all_coll_metadata_ops(fapl, 1);
-        H5Pset_coll_metadata_write(fapl, 1);
+        // H5Pset_all_coll_metadata_ops(fapl, 1);
+        // H5Pset_coll_metadata_write(fapl, 1);
 #endif
     }
     else {
@@ -974,13 +976,14 @@ print_usage(char *name)
 int
 main(int argc, char *argv[])
 {
-    int mpi_thread_lvl_provided = -1;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &mpi_thread_lvl_provided);
-    assert(MPI_THREAD_MULTIPLE == mpi_thread_lvl_provided);
-    MPI_Comm_rank(MPI_COMM_WORLD, &MY_RANK);
-    MPI_Comm_size(MPI_COMM_WORLD, &NUM_RANKS);
-    MPI_Comm           comm    = MPI_COMM_WORLD;
-    MPI_Info           info    = MPI_INFO_NULL;
+    // int mpi_thread_lvl_provided = -1;
+    // MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &mpi_thread_lvl_provided);
+    // assert(MPI_THREAD_MULTIPLE == mpi_thread_lvl_provided);
+    // MPI_Comm_rank(MPI_COMM_WORLD, &MY_RANK);
+    // MPI_Comm_size(MPI_COMM_WORLD, &NUM_RANKS);
+    // MPI_Comm           comm    = MPI_COMM_WORLD;
+    // MPI_Info           info    = MPI_INFO_NULL;
+    
     char *             num_str = "1024 Ks";
     unsigned long long num     = 0;
 
@@ -1051,12 +1054,12 @@ main(int argc, char *argv[])
     unsigned long data_size             = 0;
     unsigned long data_preparation_time = 0;
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Allreduce(&NUM_PARTICLES, &TOTAL_PARTICLES, 1, MPI_LONG_LONG, MPI_SUM, comm);
+    // MPI_Scan(&NUM_PARTICLES, &FILE_OFFSET, 1, MPI_LONG_LONG, MPI_SUM, comm);
+    // FILE_OFFSET -= NUM_PARTICLES;
 
-    MPI_Allreduce(&NUM_PARTICLES, &TOTAL_PARTICLES, 1, MPI_LONG_LONG, MPI_SUM, comm);
-    MPI_Scan(&NUM_PARTICLES, &FILE_OFFSET, 1, MPI_LONG_LONG, MPI_SUM, comm);
-
-    FILE_OFFSET -= NUM_PARTICLES;
+    TOTAL_PARTICLES = NUM_PARTICLES; // candice added
 
     if (MY_RANK == 0)
         printf("Total number of particles: %lldM\n", TOTAL_PARTICLES / (M_VAL));
@@ -1074,7 +1077,14 @@ main(int argc, char *argv[])
             H5Pset_fapl_subfiling(fapl, NULL);
         else
 #endif
-            H5Pset_fapl_mpio(fapl, comm, info);
+            // H5Pset_fapl_mpio(fapl, comm, info);
+
+        // candice added : Set up the core file access property list
+        // size_t increment = 1024 * 64; // Increment 64KB for file storage
+        // hbool_t backing_store = 1; // No backing store, use memory only
+        // H5Pset_fapl_core(fapl, increment, backing_store);
+        H5Pset_fapl_sec2(fapl);
+
         set_metadata(fapl, ALIGN, ALIGN_THRESHOLD, ALIGN_LEN, params.meta_coll);
     }
 
@@ -1086,11 +1096,13 @@ main(int argc, char *argv[])
 
     unsigned long tfopen_start = get_time_usec();
     if (params.file_per_proc) {
-        char mpi_rank_output_file_path[4096];
-        sprintf(mpi_rank_output_file_path, "%s/rank_%d_%s", get_dir_from_path(output_file), MY_RANK,
-                get_file_name_from_path(output_file));
+        // char mpi_rank_output_file_path[4096];
+        // sprintf(mpi_rank_output_file_path, "%s/rank_%d_%s", get_dir_from_path(output_file), MY_RANK,
+        //         get_file_name_from_path(output_file));
 
-        file_id = H5Fcreate_async(mpi_rank_output_file_path, H5F_ACC_TRUNC, H5P_DEFAULT, fapl, 0);
+        // file_id = H5Fcreate_async(mpi_rank_output_file_path, H5F_ACC_TRUNC, H5P_DEFAULT, fapl, 0);
+
+        file_id = H5Fcreate_async(output_file, H5F_ACC_TRUNC, H5P_DEFAULT, fapl, 0);
     }
     else {
         file_id = H5Fcreate_async(output_file, H5F_ACC_TRUNC, H5P_DEFAULT, fapl, 0);
@@ -1100,7 +1112,7 @@ main(int argc, char *argv[])
     if (MY_RANK == 0)
         printf("Opened HDF5 file... \n");
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     unsigned long t2 = get_time_usec(); // t2 - t1: metadata: creating/opening
 
     unsigned long raw_write_time, inner_metadata_time, local_data_size;
@@ -1118,7 +1130,7 @@ main(int argc, char *argv[])
     H5Pclose(fapl);
     unsigned long tflush_start = get_time_usec();
     H5Fflush(file_id, H5F_SCOPE_LOCAL);
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     unsigned long tflush_end = get_time_usec();
 
     unsigned long tfclose_start = get_time_usec();
@@ -1126,7 +1138,7 @@ main(int argc, char *argv[])
     H5Fclose_async(file_id, 0);
 
     unsigned long tfclose_end = get_time_usec();
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     unsigned long t4 = get_time_usec();
 
     if (MY_RANK == 0) {
@@ -1201,6 +1213,6 @@ main(int argc, char *argv[])
         }
     }
 
-    MPI_Finalize();
+    // MPI_Finalize();
     return 0;
 }

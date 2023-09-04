@@ -56,7 +56,7 @@
 long long  NUM_PARTICLES = 0, FILE_OFFSET = 0;
 long long  TOTAL_PARTICLES = 0;
 async_mode ASYNC_MODE;
-int        NUM_RANKS, MY_RANK, NUM_TIMESTEPS;
+int        NUM_RANKS = 1, MY_RANK, NUM_TIMESTEPS; // candice added NUM_RANKS = 1
 hid_t      PARTICLE_COMPOUND_TYPE;
 hid_t      PARTICLE_COMPOUND_TYPE_SEPARATES[8];
 int        subfiling = 0;
@@ -79,10 +79,10 @@ void
 set_dspace_plist(hid_t *plist_id_out, int data_collective)
 {
     *plist_id_out = H5Pcreate(H5P_DATASET_XFER);
-    if (data_collective == 1)
-        H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_COLLECTIVE);
-    else
-        H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_INDEPENDENT);
+    // if (data_collective == 1)
+    //     H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_COLLECTIVE);
+    // else
+    //     H5Pset_dxpl_mpio(*plist_id_out, H5FD_MPIO_INDEPENDENT);
 }
 
 // Create HDF5 file and read data
@@ -94,7 +94,7 @@ read_h5_data(time_step *ts, hid_t loc, hid_t *dset_ids, hid_t filespace, hid_t m
     unsigned long t1, t2, t3;
     dapl = H5Pcreate(H5P_DATASET_ACCESS);
 #if H5_VERSION_GE(1, 10, 0)
-    H5Pset_all_coll_metadata_ops(dapl, true);
+    // H5Pset_all_coll_metadata_ops(dapl, true);
 #endif
 
     t1 = get_time_usec();
@@ -293,6 +293,9 @@ _run_benchmark_read(hid_t file_id, hid_t fapl, hid_t gapl, hid_t filespace, benc
 
     hid_t plist_id; //, filespace, memspace;
 
+    // TODO: Always set params.file_per_proc to true for now.
+    params.file_per_proc = 1;
+
     if (params.file_per_proc) {
         plist_id = H5Pcreate(H5P_DATASET_XFER);
     }
@@ -313,6 +316,11 @@ _run_benchmark_read(hid_t file_id, hid_t fapl, hid_t gapl, hid_t filespace, benc
 
     if (MY_RANK == 0) {
         print_params(&params);
+    }
+
+    if (MY_RANK == 0) {
+        printf("Start benchmark: h5bench_read\n");
+        printf("Number of particles per rank: %llu M\n", NUM_PARTICLES / (1024 * 1024));
     }
 
     MEM_MONITOR      = mem_monitor_new(nts, ASYNC_MODE, actual_read_cnt, params.io_mem_limit);
@@ -394,11 +402,25 @@ set_pl(hid_t *fapl, hid_t *gapl)
         H5Pset_fapl_subfiling(*fapl, NULL);
     else
 #endif
-        H5Pset_fapl_mpio(*fapl, MPI_COMM_WORLD, MPI_INFO_NULL);
+        // H5Pset_fapl_mpio(*fapl, MPI_COMM_WORLD, MPI_INFO_NULL);
+
+    // Set up the Direct I/O property list
+    // unsigned align = 4096; // Alignment in bytes 4KB
+
+    // unsigned align = 1; // no alignment
+    // size_t block_size = 4096; // Block size in bytes 4KB
+    // size_t cbuf_size = 4096 * 16; // Size of the I/O transfer buffer 64KB
+    // H5Pset_fapl_direct(*fapl, align, block_size, cbuf_size);
+
+    // // Set up the core file access property list
+    // size_t increment = 1024 * 1024; // Increment size for file storage
+    // hbool_t backing_store = 0; // No backing store, use memory only
+    // H5Pset_fapl_core(*fapl, increment, backing_store);
+    H5Pset_fapl_sec2(*fapl);
 
 #if H5_VERSION_GE(1, 10, 0)
-    H5Pset_all_coll_metadata_ops(*fapl, true);
-    H5Pset_coll_metadata_write(*fapl, true);
+    // H5Pset_all_coll_metadata_ops(*fapl, true);
+    // H5Pset_coll_metadata_write(*fapl, true);
 #endif
 }
 
@@ -411,11 +433,11 @@ print_usage(char *name)
 int
 main(int argc, char *argv[])
 {
-    int mpi_thread_lvl_provided = -1;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &mpi_thread_lvl_provided);
-    assert(MPI_THREAD_MULTIPLE == mpi_thread_lvl_provided);
-    MPI_Comm_rank(MPI_COMM_WORLD, &MY_RANK);
-    MPI_Comm_size(MPI_COMM_WORLD, &NUM_RANKS);
+    // int mpi_thread_lvl_provided = -1;
+    // MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &mpi_thread_lvl_provided);
+    // assert(MPI_THREAD_MULTIPLE == mpi_thread_lvl_provided);
+    // MPI_Comm_rank(MPI_COMM_WORLD, &MY_RANK);
+    // MPI_Comm_size(MPI_COMM_WORLD, &NUM_RANKS);
 
     int sleep_time = 0;
 
@@ -510,17 +532,20 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    MPI_Info info = MPI_INFO_NULL;
+    // MPI_Info info = MPI_INFO_NULL;
     if (MY_RANK == 0) {
         printf("Total particles in the file: %lu\n", total_particles);
         printf("Number of particles available per rank: %llu \n", NUM_PARTICLES);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
-    MPI_Allreduce(&NUM_PARTICLES, &TOTAL_PARTICLES, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Scan(&NUM_PARTICLES, &FILE_OFFSET, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-    FILE_OFFSET -= NUM_PARTICLES;
+    // MPI_Allreduce(&NUM_PARTICLES, &TOTAL_PARTICLES, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    // MPI_Scan(&NUM_PARTICLES, &FILE_OFFSET, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    // FILE_OFFSET -= NUM_PARTICLES;
+
+    TOTAL_PARTICLES = NUM_PARTICLES; // candice added
+
     BUF_STRUCT = prepare_contig_memory_multi_dim(params.dim_1, params.dim_2, params.dim_3);
 
     unsigned long t1 = get_time_usec();
@@ -545,13 +570,13 @@ main(int argc, char *argv[])
 
         goto error;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
     H5Pclose(fapl);
     H5Pclose(gapl);
     H5Fclose_async(file_id, 0);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
     unsigned long t4 = get_time_usec();
 
     free_contig_memory(BUF_STRUCT);
@@ -631,6 +656,6 @@ error:
 
 done:
     H5close();
-    MPI_Finalize();
+    // MPI_Finalize();
     return 0;
 }
