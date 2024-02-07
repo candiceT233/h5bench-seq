@@ -10,7 +10,7 @@ echo "HDF5_HOME: $HDF5_PATH"
 mkdir build
 cd build
 
-export LD_LIBRARY_PATH=$HDF5_PATH/lib/libhdf5.so.310
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH/$HDF5_PATH/lib/libhdf5.so.310
 
 cmake .. \
     -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
