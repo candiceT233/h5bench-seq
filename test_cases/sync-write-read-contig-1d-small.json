@@ -1,14 +1,12 @@
 {
     "mpi": {
         "command": "mpirun",
-        "ranks": "4",
+        "ranks": "1",
         "configuration": ""
     },
     "vol": {
-        
     },
     "file-system": {
-
     },
     "directory": "storage",
     "benchmarks": [
