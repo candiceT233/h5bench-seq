@@ -1083,7 +1083,8 @@ main(int argc, char *argv[])
         // size_t increment = 1024 * 64; // Increment 64KB for file storage
         // hbool_t backing_store = 1; // No backing store, use memory only
         // H5Pset_fapl_core(fapl, increment, backing_store);
-        H5Pset_fapl_sec2(fapl);
+
+        // H5Pset_fapl_sec2(fapl);
 
         set_metadata(fapl, ALIGN, ALIGN_THRESHOLD, ALIGN_LEN, params.meta_coll);
     }

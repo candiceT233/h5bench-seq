@@ -609,7 +609,8 @@ set_pl(hid_t *fapl, hid_t *gapl)
     // size_t increment = 1024 * 1024; // Increment size for file storage
     // hbool_t backing_store = 0; // No backing store, use memory only
     // H5Pset_fapl_core(*fapl, increment, backing_store);
-    H5Pset_fapl_sec2(*fapl);
+
+    // H5Pset_fapl_sec2(*fapl);
 
 #if H5_VERSION_GE(1, 10, 0)
     // H5Pset_all_coll_metadata_ops(*fapl, true);

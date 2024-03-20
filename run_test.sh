@@ -5,7 +5,7 @@ GIT_PATH="$(pwd)"
 export HDF5_USE_FILE_LOCKING='TRUE' #'TRUE' 'FALSE' 'BEST_EFFORT'
 
 
-TEST_CONFIG="sync-write-1d-contig-contig-read-full-1p.json"
+TEST_CONFIG="sync-write-read-contig-1d-small.json"
 
 source ./load_hdf5.sh
 
@@ -18,4 +18,4 @@ rm -rf $EXEC_DIR/storage/*
 
 set -x 
 cd $EXEC_DIR
-./h5bench --debug $GIT_PATH/samples/$TEST_CONFIG
+$HOME/install/h5bench/bin/h5bench --debug $GIT_PATH/test_cases/$TEST_CONFIG
