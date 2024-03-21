@@ -2,13 +2,13 @@
     "mpi": {
         "command": "mpirun",
         "ranks": "1",
-        "configuration": "-n 1"
+        "configuration": ""
     },
     "vol": {
     },
     "file-system": {
     },
-    "directory": "storage",
+    "directory": "/mnt/ssd/mtang11/storage",
     "benchmarks": [
         {
             "benchmark": "write",

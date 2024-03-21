@@ -8,7 +8,7 @@
     },
     "file-system": {
     },
-    "directory": "storage",
+    "directory": "/mnt/ssd/mtang11/storage",
     "benchmarks": [
         {
             "benchmark": "write",
