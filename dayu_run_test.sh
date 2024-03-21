@@ -6,13 +6,17 @@ export HDF5_USE_FILE_LOCKING='TRUE' #'TRUE' 'FALSE' 'BEST_EFFORT'
 
 
 
+
 source ./load_hdf5.sh
 
 echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
 
 # EXEC_DIR=$HOME/install/h5bench/bin
 EXEC_DIR="${GIT_PATH}/test_cases"
-rm -rf $EXEC_DIR/storage/*
+
+OUTPUT_PATH=/mnt/ssd/${USER}/storage
+mkdir -p $OUTPUT_PATH
+rm -rf $OUTPUT_PATH/*
 
 set -x 
 
@@ -37,11 +41,14 @@ PREP_TASK_NAME () {
 
 EVAL_VFD_VOL_IO () {
 
-    local task1="sync-write-read-contig-1d-small"
+    # local task1="sync-write-2d-contig-contig-read-strided"
+    data_dim="3d"
+    local task1="sync-write-${data_dim}-contig-contig-read-full"
+    save_test_path="`pwd`"/test_cases/save_log/$task1
 
-    TEST_CONFIG="${task1}.json"
+    TEST_CONFIG="${data_dim}/${task1}.json"
 
-    schema_file_path="`pwd`"/test_cases/save_log
+    schema_file_path="`pwd`"/test_cases/save_log/${data_dim}
     mkdir -p $schema_file_path
     rm -rf $schema_file_path/*vfd_data_stat.json
     rm -rf $schema_file_path/*vol_data_stat.json
@@ -58,7 +65,16 @@ EVAL_VFD_VOL_IO () {
 
     PREP_TASK_NAME "$task1"
     cd $EXEC_DIR
+
+    set -x
     $HOME/install/h5bench/bin/h5bench --debug $GIT_PATH/test_cases/$TEST_CONFIG
+
+    
+    mkdir -p $save_test_path
+    rm -rf $save_test_path/*
+    
+    mv $schema_file_path/* $save_test_path
+    mv $GIT_PATH/test_cases/${data_dim}/${task1}-h5bench.log $save_test_path/
 }
 
 start_time=$(date +%s%3N)
@@ -67,6 +83,9 @@ EVAL_VFD_VOL_IO
 
 end_time=$(date +%s%3N)
 echo "Execution time: $((end_time-start_time)) ms" | tee -a $LOGFILE
+
+
+du -h $OUTPUT_PATH/test.h5
 
 # "configuration": "-env HDF5_VOL_CONNECTOR='tracker under_vol=0;under_info={};path=/home/mtang11/scripts/dayu-tracker/test/h5bench-seq/test_cases/save_log;level=2;format=' -env HDF5_PLUGIN_PATH=/mnt/common/mtang11/scripts/dayu-tracker/build/src/vol:/mnt/common/mtang11/scripts/dayu-tracker/build/src/vfd -env HDF5_DRIVER='hdf5_tracker_vfd' -env HDF5_DRIVER_CONFIG='/home/mtang11/scripts/dayu-tracker/test/h5bench-seq/test_cases/sync-write-read-contig-1d-small;65536'"
 
