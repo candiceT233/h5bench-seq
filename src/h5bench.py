@@ -282,20 +282,30 @@ class H5bench:
 
             if 'LD_PRELOAD' not in self.vol_environment:
                 self.vol_environment['LD_PRELOAD'] = ''
+            
+            # if 'HDF5_PLUGIN_PATH' in self.vol_environment:
+            #     self.vol_environment['DYLD_LIBRARY_PATH'] = self.vol_environment['HDF5_PLUGIN_PATH']
+            #     self.vol_environment['LD_PRELOAD'] = self.vol_environment['HDF5_PLUGIN_PATH']
 
-            if 'library' in vol:
-                self.vol_environment['LD_LIBRARY_PATH'] += ':' + vol['library']
-                self.vol_environment['DYLD_LIBRARY_PATH'] += ':' + vol['library']
-            if 'path' in vol:
-                self.vol_environment['HDF5_PLUGIN_PATH'] = vol['path']
-            if 'preload' in vol:
-                self.vol_environment['LD_PRELOAD'] += vol['preload']
+            # if 'library' in vol:
+            #     self.vol_environment['LD_LIBRARY_PATH'] += ':' + vol['library']
+            #     self.vol_environment['DYLD_LIBRARY_PATH'] += ':' + vol['library']
+            # if 'path' in vol:
+            #     self.vol_environment['HDF5_PLUGIN_PATH'] += ':' + vol['path']
+            # if 'preload' in vol:
+            #     self.vol_environment['LD_PRELOAD'] += vol['preload']
+            
+            if 'connector' in vol:
+                self.vol_environment['HDF5_VOL_CONNECTOR'] = vol['connector']
 
             self.vol_environment['ABT_THREAD_STACKSIZE'] = '100000'
 
             if 'HDF5_PLUGIN_PATH' in self.vol_environment:
                 self.logger.debug('HDF5_PLUGIN_PATH: %s', self.vol_environment['HDF5_PLUGIN_PATH'])
-
+        
+        if 'HDF5_VOL_CONNECTOR' in self.vol_environment:
+            self.logger.debug('HDF5_VOL_CONNECTOR: %s', self.vol_environment['HDF5_VOL_CONNECTOR'])
+        
         if 'LD_LIBRARY_PATH' in self.vol_environment:
             self.logger.debug('LD_LIBRARY_PATH: %s', self.vol_environment['LD_LIBRARY_PATH'])
 
@@ -347,6 +357,8 @@ class H5bench:
 
     def run_pattern(self, id, operation, setup, vol):
         """Run the h5bench_patterns (write/read) benchmarks."""
+        # Check all VOL VFD env vars 'HDF5_VOL_CONNECTOR' 'HDF5_PLUGIN_PATH' 'HDF5_DRIVER' 'HDF5_DRIVER_CONFIG'
+        self.logger.debug(f"Running with id: {id}")
         try:
             start = time.time()
 
@@ -355,7 +367,8 @@ class H5bench:
             configuration = setup['configuration']
 
             # Disable any user-defined VOL connectors as we will be handling that
-            self.disable_vol(vol)
+            if 'HDF5_VOL_CONNECTOR' not in self.vol_environment:
+                self.disable_vol(vol)
 
             if configuration['MODE'] in ['ASYNC', 'LOG']:
                 self.enable_vol(vol)
