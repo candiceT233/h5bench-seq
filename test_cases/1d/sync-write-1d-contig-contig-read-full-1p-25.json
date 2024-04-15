@@ -1,0 +1,53 @@
+{
+    "mpi": {
+        "command": "mpirun",
+        "ranks": "1",
+        "configuration": ""
+    },
+    "vol": {
+    },
+    "file-system": {
+    },
+    "directory": "/mnt/ssd/mtang11/storage",
+    "benchmarks": [
+        {
+            "benchmark": "write",
+            "file": "test25.h5",
+            "configuration": {
+                "MEM_PATTERN": "CONTIG",
+                "FILE_PATTERN": "CONTIG",
+                "TIMESTEPS": "5",
+                "DELAYED_CLOSE_TIMESTEPS": "2",
+                "COLLECTIVE_DATA": "YES",
+                "COLLECTIVE_METADATA": "YES",
+                "EMULATED_COMPUTE_TIME_PER_TIMESTEP": "1 s", 
+                "NUM_DIMS": "1",
+                "DIM_1": "8388608",
+                "DIM_2": "1",
+                "DIM_3": "1",
+                "CSV_FILE": "output.csv",
+                "MODE": "SYNC"
+            }
+        },
+        {
+            "benchmark": "read",
+            "file": "test25.h5",
+            "configuration": {
+                "MEM_PATTERN": "CONTIG",
+                "FILE_PATTERN": "CONTIG",
+                "READ_OPTION": "FULL",
+                "COLLECTIVE_DATA": "YES",
+                "COLLECTIVE_METADATA": "YES",
+                "TIMESTEPS": "5",
+                "DELAYED_CLOSE_TIMESTEPS": "2",
+                "EMULATED_COMPUTE_TIME_PER_TIMESTEP": "1 s", 
+                "NUM_DIMS": "1",
+                "DIM_1": "8388608",
+                "DIM_2": "1",
+                "DIM_3": "1",
+                "CSV_FILE": "output.csv",
+                "MODE": "SYNC"
+            }
+        }
+    ]
+}
